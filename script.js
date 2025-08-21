@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
             price: 119.90,
             // CORREÇÃO: Nomes dos arquivos em minúsculas para compatibilidade com o GitHub.
             // Verifique se os seus arquivos na pasta 'assets' estão com estes nomes exatos.
-            images: ["assets/gin1.jpg", "assets/gin2.jpg", "assets/gin3.jpg", "assets/gin4.jpg"],
+            images: ["assets/Gin1.jpg", "assets/Gin2.jpg", "assets/Gin3.jpg", "assets/Gin4.jpg"],
             shortDescription: "Um gin artesanal com uma infusão botânica única para um sabor vibrante.",
             longDescription: "O Gin Ignite é uma celebração de sabores. Criado com uma seleção cuidadosa de botânicos exóticos e zimbro de alta qualidade, este gin oferece um perfil aromático complexo e refrescante. Ideal para um gin tônica clássico ou para explorar novas criações de coquetelaria.",
             details: ["Tipo: London Dry Gin", "Volume: 750ml", "Teor Alcoólico: 43%", "Botânicos: Zimbro, coentro, notas cítricas e especiarias"],
