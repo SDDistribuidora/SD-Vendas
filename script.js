@@ -5,6 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 1,
             name: "Vodka Ignite",
             price: 99.90,
+            // IMPORTANTE: Verifique se os nomes dos arquivos (incluindo .jpg vs .jpeg)
+            // e as letras maiúsculas/minúsculas estão EXATAMENTE iguais aos arquivos na sua pasta 'assets'.
+            // O GitHub diferencia 'vodka1.jpg' de 'Vodka1.jpg'.
             images: ["assets/vodka1.jpg", "assets/vodka2.jpeg", "assets/vodka3.jpg", "assets/vodka4.jpg"],
             shortDescription: "Uma vodka ultra premium, destilada para pureza e suavidade excepcionais.",
             longDescription: "A Vodka Ignite redefine o padrão de luxo. Produzida a partir dos melhores grãos e água puríssima, passa por um processo de múltipla destilação que garante um sabor incrivelmente suave e um acabamento limpo. Perfeita para ser apreciada pura ou em coquetéis sofisticados.",
@@ -15,6 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 2,
             name: "Gin Ignite",
             price: 119.90,
+            // IMPORTANTE: Verifique se os nomes dos arquivos (ex: 'gin1.jpg')
+            // estão EXATAMENTE iguais aos arquivos na sua pasta 'assets' no GitHub.
             images: ["assets/gin1.jpg", "assets/gin2.jpg", "assets/gin3.jpg", "assets/gin4.jpg"],
             shortDescription: "Um gin artesanal com uma infusão botânica única para um sabor vibrante.",
             longDescription: "O Gin Ignite é uma celebração de sabores. Criado com uma seleção cuidadosa de botânicos exóticos e zimbro de alta qualidade, este gin oferece um perfil aromático complexo e refrescante. Ideal para um gin tônica clássico ou para explorar novas criações de coquetelaria.",
@@ -307,7 +312,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => modalOverlay.classList.add('active'), 10);
         document.body.classList.add('modal-open');
         
-        // Lógica da galeria
         const mainImage = modalOverlay.querySelector('.modal-main-image');
         const thumbnails = modalOverlay.querySelectorAll('.modal-thumbnail');
         
