@@ -5,9 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 1,
             name: "Vodka Ignite",
             price: 99.90,
-            // IMPORTANTE: Verifique se os nomes dos arquivos (incluindo .jpg vs .jpeg)
-            // e as letras maiúsculas/minúsculas estão EXATAMENTE iguais aos arquivos na sua pasta 'assets'.
-            // O GitHub diferencia 'vodka1.jpg' de 'Vodka1.jpg'.
             images: ["assets/vodka1.jpg", "assets/vodka2.jpeg", "assets/vodka3.jpg", "assets/vodka4.jpg"],
             shortDescription: "Uma vodka ultra premium, destilada para pureza e suavidade excepcionais.",
             longDescription: "A Vodka Ignite redefine o padrão de luxo. Produzida a partir dos melhores grãos e água puríssima, passa por um processo de múltipla destilação que garante um sabor incrivelmente suave e um acabamento limpo. Perfeita para ser apreciada pura ou em coquetéis sofisticados.",
@@ -18,9 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 2,
             name: "Gin Ignite",
             price: 119.90,
-            // IMPORTANTE: Verifique se os nomes dos arquivos (ex: 'gin1.jpg')
-            // estão EXATAMENTE iguais aos arquivos na sua pasta 'assets' no GitHub.
-            images: ["assets/gin1.jpg", "assets/gin2.jpg", "assets/gin3.jpg", "assets/gin4.jpg"],
+            // CORREÇÃO: Nomes dos arquivos em minúsculas para compatibilidade com o GitHub.
+            // Verifique se os seus arquivos na pasta 'assets' estão com estes nomes exatos.
+            images: ["assets/Gin1.jpg", "assets/Gin2.jpg", "assets/Gin3.jpg", "assets/Gin4.jpg"],
             shortDescription: "Um gin artesanal com uma infusão botânica única para um sabor vibrante.",
             longDescription: "O Gin Ignite é uma celebração de sabores. Criado com uma seleção cuidadosa de botânicos exóticos e zimbro de alta qualidade, este gin oferece um perfil aromático complexo e refrescante. Ideal para um gin tônica clássico ou para explorar novas criações de coquetelaria.",
             details: ["Tipo: London Dry Gin", "Volume: 750ml", "Teor Alcoólico: 43%", "Botânicos: Zimbro, coentro, notas cítricas e especiarias"],
@@ -285,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modalOverlay.className = 'modal-overlay';
         modalOverlay.innerHTML = `
             <div class="modal-content">
-                <ion-icon name="close-outline" class="modal-close-btn"></ion-icon>
+                <button class="modal-close-btn"><ion-icon name="close-outline"></ion-icon></button>
                 <div class="modal-gallery">
                     <div class="modal-main-image-wrapper">
                         <img src="${product.images[currentImageIndex]}" alt="${product.name}" class="modal-main-image">
