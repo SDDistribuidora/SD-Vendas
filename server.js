@@ -13,22 +13,23 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// --- DADOS CORRIGIDOS POR CAIXA FECHADA ---
 const productData = {
     1: {
         name: "Caixa de Vodka Ignite",
         price: 960.00,
-        weight: 15,
-        length: 20,
-        width: 30,
-        height: 32,
+        weight: 15, // kg
+        length: 20, // cm
+        width: 30,  // cm
+        height: 32, // cm
     },
     2: {
         name: "Caixa de Gin Ignite",
         price: 510.00,
-        weight: 8,
-        length: 15,
-        width: 23,
-        height: 12,
+        weight: 8,   // kg
+        length: 15,  // cm
+        width: 23,   // cm
+        height: 12,  // cm
     },
 };
 
@@ -47,6 +48,7 @@ app.post('/calcular-frete-e-pagamento', async (req, res) => {
     }
 
     try {
+        // --- NOVA LÓGICA DE CÁLCULO DE PACOTE ---
         const totalWeight = cart.reduce((sum, item) => sum + (productData[item.id].weight * item.quantity), 0);
         const totalVolume = cart.reduce((sum, item) => {
             const product = productData[item.id];
@@ -54,6 +56,7 @@ app.post('/calcular-frete-e-pagamento', async (req, res) => {
             return sum + (boxVolume * item.quantity);
         }, 0);
 
+        // Calcula a dimensão de um cubo com o mesmo volume total para respeitar os limites
         const cubicRoot = Math.cbrt(totalVolume);
         const side = Math.max(20, Math.ceil(cubicRoot)); 
         
@@ -77,7 +80,11 @@ app.post('/calcular-frete-e-pagamento', async (req, res) => {
         console.log('Resposta dos Correios:', resultadoFrete);
         
         if (!resultadoFrete[0] || resultadoFrete[0].Erro !== '') {
-            throw new Error(resultadoFrete[0].MsgErro || 'Não foi possível calcular o frete.');
+            // A nova biblioteca retorna o erro no campo "MsgErro" mesmo com sucesso aparente
+            if (resultadoFrete[0].MsgErro) {
+                 throw new Error(resultadoFrete[0].MsgErro);
+            }
+            throw new Error('Não foi possível calcular o frete.');
         }
 
         const valorFrete = parseFloat(resultadoFrete[0].Valor.replace(',', '.'));
@@ -98,5 +105,4 @@ app.post('/calcular-frete-e-pagamento', async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
-    
 });
