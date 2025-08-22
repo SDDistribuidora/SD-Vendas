@@ -8,7 +8,15 @@ const Correios = require('node-correios');
 // 2. Inicialização do servidor e configurações
 const app = express();
 const correios = new Correios();
-app.use(cors());
+
+// --- CORREÇÃO DE CORS ---
+// Esta configuração permite que APENAS o seu site no GitHub Pages
+// se comunique com este servidor.
+const corsOptions = {
+  origin: 'https://sddistribuidora.github.io',
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // --- DADOS DOS PRODUTOS E CAIXAS (FONTE DA VERDADE) ---
@@ -41,11 +49,16 @@ async function gerarLinkCartpanda(items, frete) {
 
 // 3. Endpoint principal da API
 app.post('/calcular-frete-e-pagamento', async (req, res) => {
+    console.log('Recebida nova requisição para /calcular-frete-e-pagamento');
     const { cart, cepDestino } = req.body;
 
     if (!cart || !cepDestino || cart.length === 0) {
+        console.log('Erro: Requisição inválida. Faltando dados.');
         return res.status(400).json({ error: 'Dados do carrinho ou CEP ausentes.' });
     }
+
+    console.log('Carrinho recebido:', cart);
+    console.log('CEP de Destino:', cepDestino);
 
     const subtotal = cart.reduce((sum, item) => {
         const product = productData[item.id];
@@ -63,7 +76,7 @@ app.post('/calcular-frete-e-pagamento', async (req, res) => {
 
     const argsCorreios = {
         nCdServico: '04510',
-        sCepOrigem: '38400000', // <<< COLOQUE O SEU CEP DE ORIGEM AQUI
+        sCepOrigem: '38400000', // <<< SEU CEP DE ORIGEM
         sCepDestino: cepDestino,
         nVlPeso: pesoTotal,
         nCdFormato: 1,
@@ -77,13 +90,16 @@ app.post('/calcular-frete-e-pagamento', async (req, res) => {
     };
 
     try {
+        console.log('Calculando frete com os Correios...');
         const [resultadoFrete] = await correios.calcPreco(argsCorreios);
+        console.log('Resposta dos Correios:', resultadoFrete);
         
         if (!resultadoFrete || resultadoFrete.Erro !== '0') {
             throw new Error(resultadoFrete.MsgErro || 'Não foi possível calcular o frete.');
         }
 
         const valorFrete = parseFloat(resultadoFrete.Valor.replace(',', '.'));
+        console.log('Valor do frete calculado:', valorFrete);
 
         const itensParaPagamento = cart.map(item => ({
             ...productData[item.id],
@@ -91,6 +107,7 @@ app.post('/calcular-frete-e-pagamento', async (req, res) => {
         }));
 
         const linkPagamento = await gerarLinkCartpanda(itensParaPagamento, valorFrete);
+        console.log('Link de pagamento gerado:', linkPagamento);
 
         res.json({
             frete: valorFrete,
@@ -104,7 +121,7 @@ app.post('/calcular-frete-e-pagamento', async (req, res) => {
     }
 });
 
-// 5. Inicia o servidor
+// 4. Inicia o servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
