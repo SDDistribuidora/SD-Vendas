@@ -1,221 +1,111 @@
-document.addEventListener('DOMContentLoaded', () => {
-    
-    const products = [
-        {
-            id: 1,
-            name: "Vodka Ignite",
-            price: 80.00,
-            images: ["assets/vodka1.jpg", "assets/vodka2.jpeg", "assets/vodka3.jpg", "assets/vodka4.jpg"],
-            shortDescription: "Uma vodka ultra premium, destilada para pureza e suavidade excepcionais.",
-            longDescription: "A Vodka Ignite redefine o padrão de luxo. Produzida a partir dos melhores grãos e água puríssima, passa por um processo de múltipla destilação que garante um sabor incrivelmente suave e um acabamento limpo. Perfeita para ser apreciada pura ou em coquetéis sofisticados.",
-            details: ["Tipo: Vodka Ultra Premium", "Volume: 750ml", "Teor Alcoólico: 40%", "Origem: Produzida com ingredientes selecionados"],
-        },
-        {
-            id: 2,
-            name: "Gin Ignite",
-            price: 85.00,
-            images: ["assets/gin1.jpg", "assets/gin2.jpg", "assets/gin3.jpg", "assets/gin4.jpg"],
-            shortDescription: "Um gin artesanal com uma infusão botânica única para um sabor vibrante.",
-            longDescription: "O Gin Ignite é uma celebração de sabores. Criado com uma seleção cuidadosa de botânicos exóticos e zimbro de alta qualidade, este gin oferece um perfil aromático complexo e refrescante. Ideal para um gin tônica clássico ou para explorar novas criações de coquetelaria.",
-            details: ["Tipo: London Dry Gin", "Volume: 750ml", "Teor Alcoólico: 43%", "Botânicos: Zimbro, coentro, notas cítricas e especiarias"],
-        },
-    ];
-    
-    let cart = [];
-    const appRoot = document.getElementById('app-root');
-    // ATENÇÃO: Mude esta URL para a URL do seu back-end no Render quando publicar
-    const backendUrl = 'http://localhost:3000'; 
+// server.js - CÓDIGO CORRETO DO BACK-END
 
-    const saveCart = () => localStorage.setItem('shoppingCart', JSON.stringify(cart));
-    const loadCart = () => {
-        const savedCart = localStorage.getItem('shoppingCart');
-        if (savedCart) cart = JSON.parse(savedCart);
+// 1. Importação das bibliotecas necessárias
+const express = require('express');
+const cors = require('cors');
+const Correios = require('node-correios');
+
+// 2. Inicialização do servidor e configurações
+const app = express();
+const correios = new Correios();
+app.use(cors());
+app.use(express.json());
+
+// --- DADOS DOS PRODUTOS E CAIXAS (FONTE DA VERDADE) ---
+const productData = {
+    1: {
+        name: "Vodka Ignite",
+        price: 80.00,
+        weight: 1.4,
+        length: 20,
+        width: 30,
+        height: 32,
+    },
+    2: {
+        name: "Gin Ignite",
+        price: 85.00,
+        weight: 1.3,
+        length: 15,
+        width: 23,
+        height: 12,
+    },
+};
+
+// --- FUNÇÃO PARA GERAR LINK DE PAGAMENTO (SIMULAÇÃO) ---
+async function gerarLinkCartpanda(items, frete) {
+    const valorTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0) + frete;
+    console.log("Gerando link de pagamento para o valor total de:", valorTotal.toFixed(2));
+    // AQUI ENTRARÁ A LÓGICA REAL DA API DA CARTPANDA
+    return `https://pagamento.exemplo.com/checkout?total=${valorTotal.toFixed(2)}`;
+}
+
+// 3. Endpoint principal da API
+app.post('/calcular-frete-e-pagamento', async (req, res) => {
+    const { cart, cepDestino } = req.body;
+
+    if (!cart || !cepDestino || cart.length === 0) {
+        return res.status(400).json({ error: 'Dados do carrinho ou CEP ausentes.' });
+    }
+
+    const subtotal = cart.reduce((sum, item) => {
+        const product = productData[item.id];
+        return sum + (product.price * item.quantity);
+    }, 0);
+
+    const pesoTotal = cart.reduce((sum, item) => {
+        const product = productData[item.id];
+        return sum + (product.weight * item.quantity);
+    }, 0).toFixed(2);
+
+    const comprimentoTotal = Math.max(...cart.map(item => productData[item.id].length));
+    const larguraTotal = Math.max(...cart.map(item => productData[item.id].width));
+    const alturaTotal = cart.reduce((sum, item) => sum + (productData[item.id].height * item.quantity), 0);
+
+    const argsCorreios = {
+        nCdServico: '04510',
+        sCepOrigem: '38400000', // <<< COLOQUE O SEU CEP DE ORIGEM AQUI
+        sCepDestino: cepDestino,
+        nVlPeso: pesoTotal,
+        nCdFormato: 1,
+        nVlComprimento: Math.max(20, comprimentoTotal),
+        nVlAltura: Math.max(10, alturaTotal),
+        nVlLargura: Math.max(20, larguraTotal),
+        nVlDiametro: 0,
+        sCdMaoPropria: 'N',
+        nVlValorDeclarado: subtotal,
+        sCdAvisoRecebimento: 'N',
     };
 
-    const renderPage = (pageName) => {
-        appRoot.innerHTML = '';
-        renderHeader(pageName);
-        if (pageName === 'home') renderHomePage();
-        else if (pageName === 'products') renderProductsPage();
-        renderFooter();
-        updateCartIcon();
-    };
-
-    const renderHeader = (activePage) => {
-        const header = document.createElement('header');
-        header.className = 'header';
-        header.innerHTML = `
-            <div class="nav-pill">
-                <div class="header-logo">
-                    <ion-icon name="bag-handle"></ion-icon>
-                    <span>S&D</span>
-                </div>
-                <nav>
-                    <a href="#" class="nav-link ${activePage === 'home' ? 'active' : ''}" data-page="home">Home</a>
-                    <a href="#" class="nav-link ${activePage === 'products' ? 'active' : ''}" data-page="products">Produtos</a>
-                </nav>
-                <div class="cart-icon-wrapper">
-                    <ion-icon name="cart-outline" class="cart-icon"></ion-icon>
-                    <span class="cart-badge">0</span>
-                </div>
-            </div>
-        `;
-        appRoot.appendChild(header);
-    };
-
-    const renderHomePage = () => { /* ...código da home page inalterado... */ };
-    const renderProductsPage = () => { /* ...código da pág de produtos inalterado... */ };
-    const renderFooter = () => { /* ...código do rodapé inalterado... */ };
-
-    const updateCartIcon = () => {
-        const badge = document.querySelector('.cart-badge');
-        if (!badge) return;
-        const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-        badge.textContent = totalItems;
-        badge.classList.toggle('visible', totalItems > 0);
-    };
-
-    const addToCart = (productId) => {
-        const existingItem = cart.find(item => item.id === productId);
-        if (existingItem) {
-            existingItem.quantity++;
-        } else {
-            cart.push({ id: productId, quantity: 1 });
-        }
-        const cartIconWrapper = document.querySelector('.cart-icon-wrapper');
-        if (cartIconWrapper) {
-            cartIconWrapper.classList.add('shaking');
-            setTimeout(() => cartIconWrapper.classList.remove('shaking'), 800);
-        }
-        saveCart();
-        updateCartView();
-    };
-    
-    const updateQuantity = (productId, newQuantity) => {
-        const itemIndex = cart.findIndex(item => item.id === productId);
-        if (itemIndex > -1) {
-            if (newQuantity <= 0) {
-                cart.splice(itemIndex, 1);
-            } else {
-                cart[itemIndex].quantity = newQuantity;
-            }
-            saveCart();
-            updateCartView();
-        }
-    };
-
-    const updateCartView = () => {
-        const cartBody = document.querySelector('.cart-body');
-        const cartFooter = document.querySelector('.cart-footer');
-        if (!cartBody || !cartFooter) return;
-
-        updateCartIcon();
-
-        if (cart.length === 0) {
-            cartBody.innerHTML = `<p class="cart-empty-message">Seu carrinho está vazio.</p>`;
-            cartFooter.style.display = 'none';
-        } else {
-            cartBody.innerHTML = cart.map(item => {
-                const product = products.find(p => p.id === item.id);
-                return `
-                <div class="cart-item" data-id="${item.id}">
-                    <img src="${product.images[0]}" alt="${product.name}" class="cart-item-image">
-                    <div class="cart-item-details">
-                        <p class="cart-item-title">${product.name}</p>
-                        <p class="cart-item-price">R$ ${product.price.toFixed(2).replace('.', ',')}</p>
-                        <div class="cart-item-actions">
-                            <div class="quantity-control">
-                                <button class="quantity-btn decrease-qty">-</button>
-                                <span class="quantity-display">${item.quantity}</span>
-                                <button class="quantity-btn increase-qty">+</button>
-                            </div>
-                            <button class="remove-item-btn"><ion-icon name="trash-outline"></ion-icon></button>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
-
-            const subtotal = cart.reduce((sum, item) => {
-                const product = products.find(p => p.id === item.id);
-                return sum + (product.price * item.quantity);
-            }, 0);
-
-            cartFooter.style.display = 'block';
-            cartFooter.innerHTML = `
-                <div class="cart-subtotal">
-                    <span>Subtotal</span>
-                    <span>R$ ${subtotal.toFixed(2).replace('.', ',')}</span>
-                </div>
-                <div class="shipping-calc">
-                    <input type="text" id="cep-input" placeholder="Digite seu CEP">
-                    <button class="button" id="checkout-btn">Finalizar Compra</button>
-                </div>
-                <div id="shipping-result"></div>
-            `;
-        }
-    };
-    
-    const createCartShell = () => { /* ...código inalterado... */ };
-    const toggleCart = (show) => { /* ...código inalterado... */ };
-    const openProductModal = (productId) => { /* ...código inalterado... */ };
-
-    const handleCheckout = async () => {
-        const cepInput = document.getElementById('cep-input');
-        const checkoutBtn = document.getElementById('checkout-btn');
-        const shippingResult = document.getElementById('shipping-result');
-
-        const cep = cepInput.value.replace(/\D/g, ''); // Remove caracteres não numéricos
-        if (cep.length !== 8) {
-            shippingResult.textContent = 'Por favor, digite um CEP válido.';
-            shippingResult.style.color = 'red';
-            return;
+    try {
+        const [resultadoFrete] = await correios.calcPreco(argsCorreios);
+        
+        if (!resultadoFrete || resultadoFrete.Erro !== '0') {
+            throw new Error(resultadoFrete.MsgErro || 'Não foi possível calcular o frete.');
         }
 
-        checkoutBtn.textContent = 'Calculando...';
-        checkoutBtn.disabled = true;
-        shippingResult.textContent = '';
+        const valorFrete = parseFloat(resultadoFrete.Valor.replace(',', '.'));
 
-        try {
-            const response = await fetch(`${backendUrl}/calcular-frete-e-pagamento`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cart, cepDestino: cep })
-            });
+        const itensParaPagamento = cart.map(item => ({
+            ...productData[item.id],
+            quantity: item.quantity
+        }));
 
-            const data = await response.json();
+        const linkPagamento = await gerarLinkCartpanda(itensParaPagamento, valorFrete);
 
-            if (!response.ok) {
-                throw new Error(data.details || 'Erro ao calcular o frete.');
-            }
-            
-            // Redireciona para o link de pagamento
-            window.location.href = data.paymentLink;
-
-        } catch (error) {
-            shippingResult.textContent = `Erro: ${error.message}`;
-            shippingResult.style.color = 'red';
-            checkoutBtn.textContent = 'Finalizar Compra';
-            checkoutBtn.disabled = false;
-        }
-    };
-
-    const initializeEventListeners = () => {
-        document.body.addEventListener('click', function(event) {
-            // ... (outros listeners como navLink, detailsButton, etc.)
-
-            // Botão de Finalizar Compra
-            if (event.target.id === 'checkout-btn') {
-                handleCheckout();
-                return;
-            }
-            
-            // ... (resto dos listeners)
+        res.json({
+            frete: valorFrete,
+            total: subtotal + valorFrete,
+            paymentLink: linkPagamento
         });
-    };
 
-    // Inicialização
-    loadCart();
-    createCartShell();
-    renderPage('home');
-    initializeEventListeners();
+    } catch (error) {
+        console.error("Erro ao processar:", error);
+        res.status(500).json({ error: 'Ocorreu um erro no servidor.', details: error.message });
+    }
+});
+
+// 5. Inicia o servidor
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
 });
