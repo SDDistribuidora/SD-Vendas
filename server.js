@@ -50,12 +50,18 @@ app.post('/calcular-frete-e-pagamento', async (req, res) => {
 
     try {
         // --- NOVA LÓGICA DE CÁLCULO DE PACOTE ---
-        // A 'quantity' que vem do front-end agora representa o número de caixas.
         const totalWeight = cart.reduce((sum, item) => sum + (productData[item.id].weight * item.quantity), 0);
-        const finalHeight = cart.reduce((sum, item) => sum + (productData[item.id].height * item.quantity), 0); // Empilhando caixas
-        const finalLength = Math.max(...cart.map(item => productData[item.id].length));
-        const finalWidth = Math.max(...cart.map(item => productData[item.id].width));
-        
+        const totalVolume = cart.reduce((sum, item) => {
+            const product = productData[item.id];
+            const boxVolume = product.length * product.width * product.height;
+            return sum + (boxVolume * item.quantity);
+        }, 0);
+
+        // Calcula a dimensão de um cubo com o mesmo volume total para respeitar os limites
+        const cubicRoot = Math.cbrt(totalVolume);
+        // Garante as dimensões mínimas exigidas pelos Correios
+        const side = Math.max(20, Math.ceil(cubicRoot)); 
+
         const subtotal = cart.reduce((sum, item) => sum + (productData[item.id].price * item.quantity), 0);
 
         const argsCorreios = {
@@ -64,9 +70,9 @@ app.post('/calcular-frete-e-pagamento', async (req, res) => {
             sCepDestino: cepDestino,
             nVlPeso: totalWeight,
             nCdFormato: 1, // Caixa
-            nVlComprimento: Math.max(16, finalLength), // Mínimo de 16cm
-            nVlAltura: Math.max(2, finalHeight), // Mínimo de 2cm
-            nVlLargura: Math.max(11, finalWidth), // Mínimo de 11cm
+            nVlComprimento: side,
+            nVlAltura: side,
+            nVlLargura: side,
             nVlDiametro: 0,
             sCdMaoPropria: 'N',
             nVlValorDeclarado: subtotal,
