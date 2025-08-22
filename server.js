@@ -49,7 +49,7 @@ app.post('/calcular-frete-e-pagamento', async (req, res) => {
     }
 
     try {
-        // --- LÓGICA DE CÁLCULO BASEADA NO NÚMERO DE CAIXAS ---
+        // --- NOVA LÓGICA DE CÁLCULO DE PACOTE ---
         // A 'quantity' que vem do front-end agora representa o número de caixas.
         const totalWeight = cart.reduce((sum, item) => sum + (productData[item.id].weight * item.quantity), 0);
         const finalHeight = cart.reduce((sum, item) => sum + (productData[item.id].height * item.quantity), 0); // Empilhando caixas
@@ -64,9 +64,9 @@ app.post('/calcular-frete-e-pagamento', async (req, res) => {
             sCepDestino: cepDestino,
             nVlPeso: totalWeight,
             nCdFormato: 1, // Caixa
-            nVlComprimento: Math.max(20, finalLength),
-            nVlAltura: Math.max(10, finalHeight),
-            nVlLargura: Math.max(20, finalWidth),
+            nVlComprimento: Math.max(16, finalLength), // Mínimo de 16cm
+            nVlAltura: Math.max(2, finalHeight), // Mínimo de 2cm
+            nVlLargura: Math.max(11, finalWidth), // Mínimo de 11cm
             nVlDiametro: 0,
             sCdMaoPropria: 'N',
             nVlValorDeclarado: subtotal,
