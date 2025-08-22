@@ -1,5 +1,8 @@
 {
   "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "node-correios": "^3.0.2",
     "ogl": "^1.0.11"
   }
 }
