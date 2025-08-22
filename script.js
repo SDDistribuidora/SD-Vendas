@@ -1,11 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- DADOS DO FRONT-END ATUALIZADOS PARA CAIXA FECHADA ---
     const products = [
         {
             id: 1,
             name: "Vodka Ignite (Caixa)",
-            price: 960.00, // Preço da CAIXA
+            price: 960.00,
             images: ["assets/vodka1.jpg", "assets/vodka2.jpeg", "assets/vodka3.jpg", "assets/vodka4.jpg"],
             shortDescription: "Caixa com 12 unidades. Uma vodka ultra premium, destilada para pureza e suavidade.",
             longDescription: "A Vodka Ignite redefine o padrão de luxo. Produzida a partir dos melhores grãos e água puríssima, passa por um processo de múltipla destilação que garante um sabor incrivelmente suave e um acabamento limpo. Perfeita para ser apreciada pura ou em coquetéis sofisticados.",
@@ -14,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
         {
             id: 2,
             name: "Gin Ignite (Caixa)",
-            price: 510.00, // Preço da CAIXA
+            price: 510.00,
             images: ["assets/gin1.jpg", "assets/gin2.jpg", "assets/gin3.jpg", "assets/gin4.jpg"],
             shortDescription: "Caixa com 6 unidades. Um gin artesanal com uma infusão botânica única.",
             longDescription: "O Gin Ignite é uma celebração de sabores. Criado com uma seleção cuidadosa de botânicos exóticos e zimbro de alta qualidade, este gin oferece um perfil aromático complexo e refrescante. Ideal para um gin tônica clássico ou para explorar novas criações de coquetelaria.",
@@ -375,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const options = await response.json();
             if (!response.ok || options.length === 0) {
-                throw new Error(options.error || 'Nenhuma opção de frete encontrada.');
+                throw new Error(options.details || options.error || 'Nenhuma opção de frete encontrada.');
             }
             
             shippingOptionsDiv.innerHTML = `
