@@ -160,7 +160,6 @@ nav {
     .about-title { font-size: 1.75rem; }
     .nav-pill { padding: 0.5rem; gap: 0.25rem; }
     .nav-link { padding: 0.75rem 1rem; }
-    /* CORREÇÃO: Removida a regra que escondia o nome da loja no mobile */
 }
 
 /* Seção de Features (Home) */
@@ -281,3 +280,22 @@ nav {
 .remove-item-btn { background: none; border: none; cursor: pointer; color: #ef4444; font-size: 1.25rem; }
 .cart-footer { padding: 1.5rem; border-top: 1px solid #e5e7eb; }
 .cart-subtotal { display: flex; justify-content: space-between; font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; }
+
+/* CORREÇÃO: Estilos para o campo de CEP e botão */
+.shipping-calc {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem; /* Espaço entre o input e o botão */
+    margin-bottom: 0.75rem;
+}
+#cep-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+}
+#shipping-result {
+    font-size: 0.875rem;
+    min-height: 1.25rem; /* Garante espaço para a mensagem de erro */
+}

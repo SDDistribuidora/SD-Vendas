@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
         {
             id: 1,
             name: "Vodka Ignite",
-            price: 80.00, // Preço unitário
+            price: 80.00,
             images: ["assets/vodka1.jpg", "assets/vodka2.jpeg", "assets/vodka3.jpg", "assets/vodka4.jpg"],
             shortDescription: "Uma vodka ultra premium, destilada para pureza e suavidade excepcionais.",
             longDescription: "A Vodka Ignite redefine o padrão de luxo. Produzida a partir dos melhores grãos e água puríssima, passa por um processo de múltipla destilação que garante um sabor incrivelmente suave e um acabamento limpo. Perfeita para ser apreciada pura ou em coquetéis sofisticados.",
@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
         {
             id: 2,
             name: "Gin Ignite",
-            price: 85.00, // Preço unitário
+            price: 85.00,
             images: ["assets/gin1.jpg", "assets/gin2.jpg", "assets/gin3.jpg", "assets/gin4.jpg"],
             shortDescription: "Um gin artesanal com uma infusão botânica única para um sabor vibrante.",
             longDescription: "O Gin Ignite é uma celebração de sabores. Criado com uma seleção cuidadosa de botânicos exóticos e zimbro de alta qualidade, este gin oferece um perfil aromático complexo e refrescante. Ideal para um gin tônica clássico ou para explorar novas criações de coquetelaria.",
@@ -23,8 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let cart = [];
     const appRoot = document.getElementById('app-root');
-    
-    // ATUALIZAÇÃO CRÍTICA: URL do back-end agora aponta para o servidor no Render
     const backendUrl = 'https://sd-vendas.onrender.com'; 
 
     const saveCart = () => localStorage.setItem('shoppingCart', JSON.stringify(cart));
@@ -242,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span>R$ ${subtotal.toFixed(2).replace('.', ',')}</span>
                 </div>
                 <div class="shipping-calc">
-                    <input type="text" id="cep-input" placeholder="Digite seu CEP">
+                    <input type="text" id="cep-input" placeholder="Digite seu CEP para calcular">
                     <button class="button" id="checkout-btn">Finalizar Compra</button>
                 </div>
                 <div id="shipping-result"></div>
@@ -374,12 +372,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.details || 'Erro ao calcular o frete.');
+                throw new Error(data.details || data.error || 'Erro ao calcular o frete.');
             }
             
-            window.location.href = data.paymentLink;
+            shippingResult.textContent = `Frete: R$ ${data.frete.toFixed(2).replace('.', ',')}. Redirecionando...`;
+            shippingResult.style.color = 'green';
+
+            setTimeout(() => {
+                window.location.href = data.paymentLink;
+            }, 1500);
 
         } catch (error) {
+            console.error('Erro no checkout:', error);
             shippingResult.textContent = `Erro: ${error.message}`;
             shippingResult.style.color = 'red';
             checkoutBtn.textContent = 'Finalizar Compra';
