@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const products = [
         {
             id: 1,
-            name: "Vodka Ignite",
+            name: "Vodka Ignite (Caixa)",
             price: 960.00, // Preço da CAIXA
             images: ["assets/vodka1.jpg", "assets/vodka2.jpeg", "assets/vodka3.jpg", "assets/vodka4.jpg"],
             shortDescription: "Caixa com 12 unidades. Uma vodka ultra premium, destilada para pureza e suavidade.",
@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         {
             id: 2,
-            name: "Gin Ignite",
+            name: "Gin Ignite (Caixa)",
             price: 510.00, // Preço da CAIXA
             images: ["assets/gin1.jpg", "assets/gin2.jpg", "assets/gin3.jpg", "assets/gin4.jpg"],
             shortDescription: "Caixa com 6 unidades. Um gin artesanal com uma infusão botânica única.",
@@ -22,7 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
         },
     ];
     
-    let cart = []; // Agora, a quantidade aqui se refere ao número de CAIXAS
+    let cart = [];
+    let selectedShipping = null;
     const appRoot = document.getElementById('app-root');
     const backendUrl = 'https://sd-vendas.onrender.com'; 
 
@@ -207,6 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (cart.length === 0) {
             cartBody.innerHTML = `<p class="cart-empty-message">Seu carrinho está vazio.</p>`;
+            cartFooter.innerHTML = '';
             cartFooter.style.display = 'none';
         } else {
             cartBody.innerHTML = cart.map(item => {
@@ -241,10 +243,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span>R$ ${subtotal.toFixed(2).replace('.', ',')}</span>
                 </div>
                 <div class="shipping-calc">
-                    <input type="text" id="cep-input" placeholder="Digite seu CEP para calcular">
-                    <button class="button" id="checkout-btn">Finalizar Compra</button>
+                    <input type="text" id="cep-input" placeholder="Calcular frete (CEP)">
+                    <button class="button small-btn" id="calc-shipping-btn">Calcular</button>
                 </div>
-                <div id="shipping-result"></div>
+                <div id="shipping-options"></div>
+                <div id="final-total" class="final-total" style="display: none;"></div>
+                <button class="button" id="checkout-btn" style="display: none;">Ir para Pagamento</button>
             `;
         }
     };
@@ -346,50 +350,83 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     };
-
-    const handleCheckout = async () => {
+    
+    const handleShippingCalculation = async () => {
         const cepInput = document.getElementById('cep-input');
-        const checkoutBtn = document.getElementById('checkout-btn');
-        const shippingResult = document.getElementById('shipping-result');
+        const calcBtn = document.getElementById('calc-shipping-btn');
+        const shippingOptionsDiv = document.getElementById('shipping-options');
 
-        const cep = cepInput.value.replace(/\D/g, '');
-        if (cep.length !== 8) {
-            shippingResult.textContent = 'Por favor, digite um CEP válido.';
-            shippingResult.style.color = 'red';
+        const cepDestino = cepInput.value.replace(/\D/g, '');
+        if (cepDestino.length !== 8) {
+            shippingOptionsDiv.innerHTML = `<p class="shipping-error">CEP inválido.</p>`;
             return;
         }
 
-        checkoutBtn.textContent = 'Calculando...';
-        checkoutBtn.disabled = true;
-        shippingResult.textContent = '';
+        calcBtn.textContent = '...';
+        calcBtn.disabled = true;
+        shippingOptionsDiv.innerHTML = `<p>Calculando...</p>`;
 
         try {
-            const response = await fetch(`${backendUrl}/calcular-frete-e-pagamento`, {
+            const response = await fetch(`${backendUrl}/calcular-frete`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cart, cepDestino: cep })
+                body: JSON.stringify({ cart, cepDestino })
             });
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.details || data.error || 'Erro ao calcular o frete.');
+            const options = await response.json();
+            if (!response.ok || options.length === 0) {
+                throw new Error(options.error || 'Nenhuma opção de frete encontrada.');
             }
             
-            shippingResult.textContent = `Frete: R$ ${data.frete.toFixed(2).replace('.', ',')}. Redirecionando...`;
-            shippingResult.style.color = 'green';
-
-            setTimeout(() => {
-                window.location.href = data.paymentLink;
-            }, 1500);
+            shippingOptionsDiv.innerHTML = `
+                <h4>Escolha uma opção de frete:</h4>
+                ${options.map(opt => `
+                    <div class="shipping-option">
+                        <input type="radio" name="shipping" id="ship-${opt.id}" value="${opt.price}" data-name="${opt.name}">
+                        <label for="ship-${opt.id}">
+                            <span>${opt.name} - <b>R$ ${opt.custom_price.replace('.', ',')}</b></span>
+                            <span>Prazo: ${opt.custom_delivery_time} dias</span>
+                        </label>
+                    </div>
+                `).join('')}`;
 
         } catch (error) {
-            console.error('Erro no checkout:', error);
-            shippingResult.textContent = `Erro: ${error.message}`;
-            shippingResult.style.color = 'red';
-            checkoutBtn.textContent = 'Finalizar Compra';
-            checkoutBtn.disabled = false;
+            shippingOptionsDiv.innerHTML = `<p class="shipping-error">Erro: ${error.message}</p>`;
+        } finally {
+            calcBtn.textContent = 'Calcular';
+            calcBtn.disabled = false;
         }
+    };
+    
+    const updateTotal = () => {
+        const finalTotalDiv = document.getElementById('final-total');
+        const checkoutBtn = document.getElementById('checkout-btn');
+
+        if (!selectedShipping) {
+            finalTotalDiv.style.display = 'none';
+            checkoutBtn.style.display = 'none';
+            return;
+        }
+        
+        const subtotal = cart.reduce((sum, item) => {
+            const product = products.find(p => p.id === item.id);
+            return sum + (product.price * item.quantity);
+        }, 0);
+        
+        const total = subtotal + parseFloat(selectedShipping.price);
+        
+        finalTotalDiv.innerHTML = `
+            <div>
+                <span>Frete (${selectedShipping.name})</span>
+                <span>R$ ${parseFloat(selectedShipping.price).toFixed(2).replace('.', ',')}</span>
+            </div>
+            <div>
+                <strong>Total</strong>
+                <strong>R$ ${total.toFixed(2).replace('.', ',')}</strong>
+            </div>
+        `;
+        finalTotalDiv.style.display = 'flex';
+        checkoutBtn.style.display = 'block';
     };
 
     const initializeEventListeners = () => {
@@ -460,8 +497,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
+            if (event.target.id === 'calc-shipping-btn') {
+                handleShippingCalculation();
+                return;
+            }
+
+            if (event.target.name === 'shipping') {
+                selectedShipping = {
+                    price: event.target.value,
+                    name: event.target.dataset.name
+                };
+                updateTotal();
+                return;
+            }
+            
             if (event.target.id === 'checkout-btn') {
-                handleCheckout();
+                if (selectedShipping) {
+                    const subtotal = cart.reduce((sum, item) => {
+                        const product = products.find(p => p.id === item.id);
+                        return sum + (product.price * item.quantity);
+                    }, 0);
+                    const total = subtotal + parseFloat(selectedShipping.price);
+                    
+                    const paymentLink = `https://pagamento.exemplo.com/checkout?total=${total.toFixed(2)}`;
+                    console.log("Redirecionando para:", paymentLink);
+                    window.location.href = paymentLink;
+                } else {
+                    alert("Por favor, selecione uma opção de frete.");
+                }
                 return;
             }
         });
