@@ -1,10 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
     
+    // --- DADOS DO FRONT-END ATUALIZADOS PARA CAIXA FECHADA ---
     const products = [
         {
             id: 1,
             name: "Vodka Ignite (Caixa)",
-            price: 960.00,
+            price: 960.00, // Preço da CAIXA
             images: ["assets/vodka1.jpg", "assets/vodka2.jpeg", "assets/vodka3.jpg", "assets/vodka4.jpg"],
             shortDescription: "Caixa com 12 unidades. Uma vodka ultra premium, destilada para pureza e suavidade.",
             longDescription: "A Vodka Ignite redefine o padrão de luxo. Produzida a partir dos melhores grãos e água puríssima, passa por um processo de múltipla destilação que garante um sabor incrivelmente suave e um acabamento limpo. Perfeita para ser apreciada pura ou em coquetéis sofisticados.",
@@ -13,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
         {
             id: 2,
             name: "Gin Ignite (Caixa)",
-            price: 510.00,
+            price: 510.00, // Preço da CAIXA
             images: ["assets/gin1.jpg", "assets/gin2.jpg", "assets/gin3.jpg", "assets/gin4.jpg"],
             shortDescription: "Caixa com 6 unidades. Um gin artesanal com uma infusão botânica única.",
             longDescription: "O Gin Ignite é uma celebração de sabores. Criado com uma seleção cuidadosa de botânicos exóticos e zimbro de alta qualidade, este gin oferece um perfil aromático complexo e refrescante. Ideal para um gin tônica clássico ou para explorar novas criações de coquetelaria.",
@@ -210,6 +211,12 @@ document.addEventListener('DOMContentLoaded', () => {
             cartFooter.innerHTML = '';
             cartFooter.style.display = 'none';
         } else {
+            const subtotal = cart.reduce((sum, item) => {
+                const product = products.find(p => p.id === item.id);
+                return sum + (product.price * item.quantity);
+            }, 0);
+
+            // CORREÇÃO: O HTML do frete agora é gerado dentro do cart-body
             cartBody.innerHTML = cart.map(item => {
                 const product = products.find(p => p.id === item.id);
                 return `
@@ -228,15 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                 </div>`;
-            }).join('');
-
-            const subtotal = cart.reduce((sum, item) => {
-                const product = products.find(p => p.id === item.id);
-                return sum + (product.price * item.quantity);
-            }, 0);
-
-            cartFooter.style.display = 'block';
-            cartFooter.innerHTML = `
+            }).join('') + `
                 <div class="cart-subtotal">
                     <span>Subtotal</span>
                     <span>R$ ${subtotal.toFixed(2).replace('.', ',')}</span>
@@ -246,6 +245,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button class="button small-btn" id="calc-shipping-btn">Calcular</button>
                 </div>
                 <div id="shipping-options"></div>
+            `;
+
+            // CORREÇÃO: O rodapé agora só tem o total e o botão de finalizar
+            cartFooter.style.display = 'block';
+            cartFooter.innerHTML = `
                 <div id="final-total" class="final-total" style="display: none;"></div>
                 <button class="button" id="checkout-btn" style="display: none;">Ir para Pagamento</button>
             `;
@@ -263,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <ion-icon name="close-outline" class="cart-close-btn"></ion-icon>
                 </div>
                 <div class="cart-body"></div>
-                <div class="cart-footer" style="display: none;"></div>
+                <div class="cart-footer"></div>
             </div>
         `;
         document.body.appendChild(overlay);
@@ -374,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const options = await response.json();
             if (!response.ok || options.length === 0) {
-                throw new Error(options.details || options.error || 'Nenhuma opção de frete encontrada.');
+                throw new Error(options.error || 'Nenhuma opção de frete encontrada.');
             }
             
             shippingOptionsDiv.innerHTML = `
