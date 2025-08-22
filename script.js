@@ -4,41 +4,33 @@ document.addEventListener('DOMContentLoaded', () => {
         {
             id: 1,
             name: "Vodka Ignite",
-            price: 99.90,
+            price: 80.00,
             images: ["assets/vodka1.jpg", "assets/vodka2.jpeg", "assets/vodka3.jpg", "assets/vodka4.jpg"],
             shortDescription: "Uma vodka ultra premium, destilada para pureza e suavidade excepcionais.",
             longDescription: "A Vodka Ignite redefine o padrão de luxo. Produzida a partir dos melhores grãos e água puríssima, passa por um processo de múltipla destilação que garante um sabor incrivelmente suave e um acabamento limpo. Perfeita para ser apreciada pura ou em coquetéis sofisticados.",
             details: ["Tipo: Vodka Ultra Premium", "Volume: 750ml", "Teor Alcoólico: 40%", "Origem: Produzida com ingredientes selecionados"],
-            paymentLink: "https://seulinkdepagamento.com/vodka-ignite"
         },
         {
             id: 2,
             name: "Gin Ignite",
-            price: 119.90,
-            // CORREÇÃO: Nomes dos arquivos em minúsculas para compatibilidade com o GitHub.
-            // Verifique se os seus arquivos na pasta 'assets' estão com estes nomes exatos.
-            images: ["assets/Gin1.jpg", "assets/Gin2.jpg", "assets/Gin3.jpg", "assets/Gin4.jpg"],
+            price: 85.00,
+            images: ["assets/gin1.jpg", "assets/gin2.jpg", "assets/gin3.jpg", "assets/gin4.jpg"],
             shortDescription: "Um gin artesanal com uma infusão botânica única para um sabor vibrante.",
             longDescription: "O Gin Ignite é uma celebração de sabores. Criado com uma seleção cuidadosa de botânicos exóticos e zimbro de alta qualidade, este gin oferece um perfil aromático complexo e refrescante. Ideal para um gin tônica clássico ou para explorar novas criações de coquetelaria.",
             details: ["Tipo: London Dry Gin", "Volume: 750ml", "Teor Alcoólico: 43%", "Botânicos: Zimbro, coentro, notas cítricas e especiarias"],
-            paymentLink: "https://seulinkdepagamento.com/gin-ignite"
         },
     ];
     
     let cart = [];
     const appRoot = document.getElementById('app-root');
+    
+    // ATUALIZAÇÃO: URL do back-end agora aponta para o servidor no Render
+    const backendUrl = 'https://sd-vendas.onrender.com'; 
 
-    // Função para salvar o carrinho no localStorage
-    const saveCart = () => {
-        localStorage.setItem('shoppingCart', JSON.stringify(cart));
-    };
-
-    // Função para carregar o carrinho do localStorage
+    const saveCart = () => localStorage.setItem('shoppingCart', JSON.stringify(cart));
     const loadCart = () => {
         const savedCart = localStorage.getItem('shoppingCart');
-        if (savedCart) {
-            cart = JSON.parse(savedCart);
-        }
+        if (savedCart) cart = JSON.parse(savedCart);
     };
 
     const renderPage = (pageName) => {
@@ -179,23 +171,17 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const addToCart = (productId) => {
-        const product = products.find(p => p.id === productId);
         const existingItem = cart.find(item => item.id === productId);
-
         if (existingItem) {
             existingItem.quantity++;
         } else {
-            cart.push({ ...product, quantity: 1 });
+            cart.push({ id: productId, quantity: 1 });
         }
-        
         const cartIconWrapper = document.querySelector('.cart-icon-wrapper');
         if (cartIconWrapper) {
             cartIconWrapper.classList.add('shaking');
-            setTimeout(() => {
-                cartIconWrapper.classList.remove('shaking');
-            }, 800);
+            setTimeout(() => cartIconWrapper.classList.remove('shaking'), 800);
         }
-        
         saveCart();
         updateCartView();
     };
@@ -224,12 +210,14 @@ document.addEventListener('DOMContentLoaded', () => {
             cartBody.innerHTML = `<p class="cart-empty-message">Seu carrinho está vazio.</p>`;
             cartFooter.style.display = 'none';
         } else {
-            cartBody.innerHTML = cart.map(item => `
+            cartBody.innerHTML = cart.map(item => {
+                const product = products.find(p => p.id === item.id);
+                return `
                 <div class="cart-item" data-id="${item.id}">
-                    <img src="${item.images[0]}" alt="${item.name}" class="cart-item-image">
+                    <img src="${product.images[0]}" alt="${product.name}" class="cart-item-image">
                     <div class="cart-item-details">
-                        <p class="cart-item-title">${item.name}</p>
-                        <p class="cart-item-price">R$ ${item.price.toFixed(2).replace('.', ',')}</p>
+                        <p class="cart-item-title">${product.name}</p>
+                        <p class="cart-item-price">R$ ${product.price.toFixed(2).replace('.', ',')}</p>
                         <div class="cart-item-actions">
                             <div class="quantity-control">
                                 <button class="quantity-btn decrease-qty">-</button>
@@ -239,17 +227,25 @@ document.addEventListener('DOMContentLoaded', () => {
                             <button class="remove-item-btn"><ion-icon name="trash-outline"></ion-icon></button>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
 
-            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const subtotal = cart.reduce((sum, item) => {
+                const product = products.find(p => p.id === item.id);
+                return sum + (product.price * item.quantity);
+            }, 0);
+
             cartFooter.style.display = 'block';
             cartFooter.innerHTML = `
                 <div class="cart-subtotal">
                     <span>Subtotal</span>
                     <span>R$ ${subtotal.toFixed(2).replace('.', ',')}</span>
                 </div>
-                <button class="button">Finalizar Compra</button>
+                <div class="shipping-calc">
+                    <input type="text" id="cep-input" placeholder="Digite seu CEP">
+                    <button class="button" id="checkout-btn">Finalizar Compra</button>
+                </div>
+                <div id="shipping-result"></div>
             `;
         }
     };
@@ -352,6 +348,45 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const handleCheckout = async () => {
+        const cepInput = document.getElementById('cep-input');
+        const checkoutBtn = document.getElementById('checkout-btn');
+        const shippingResult = document.getElementById('shipping-result');
+
+        const cep = cepInput.value.replace(/\D/g, '');
+        if (cep.length !== 8) {
+            shippingResult.textContent = 'Por favor, digite um CEP válido.';
+            shippingResult.style.color = 'red';
+            return;
+        }
+
+        checkoutBtn.textContent = 'Calculando...';
+        checkoutBtn.disabled = true;
+        shippingResult.textContent = '';
+
+        try {
+            const response = await fetch(`${backendUrl}/calcular-frete-e-pagamento`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cart, cepDestino: cep })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.details || 'Erro ao calcular o frete.');
+            }
+            
+            window.location.href = data.paymentLink;
+
+        } catch (error) {
+            shippingResult.textContent = `Erro: ${error.message}`;
+            shippingResult.style.color = 'red';
+            checkoutBtn.textContent = 'Finalizar Compra';
+            checkoutBtn.disabled = false;
+        }
+    };
+
     const initializeEventListeners = () => {
         document.body.addEventListener('click', function(event) {
             const navLink = event.target.closest('.nav-link');
@@ -419,10 +454,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     setTimeout(() => modal.remove(), 300);
                 }
             }
+            
+            if (event.target.id === 'checkout-btn') {
+                handleCheckout();
+                return;
+            }
         });
     };
 
-    // Inicialização do site
     loadCart();
     createCartShell();
     renderPage('home');
