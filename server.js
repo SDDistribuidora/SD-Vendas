@@ -1,11 +1,10 @@
-// server.js - CÓDIGO CORRETO DO BACK-END
+// server.js - VERSÃO FINAL COM A BIBLIOTECA 'correios-brasil'
 
 const express = require('express');
 const cors = require('cors');
-const Correios = require('node-correios');
+const { calcularPrecoPrazo } = require('correios-brasil'); // Nova biblioteca
 
 const app = express();
-const correios = new Correios();
 
 const corsOptions = {
   origin: 'https://sddistribuidora.github.io',
@@ -14,23 +13,22 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// --- DADOS CORRIGIDOS POR CAIXA FECHADA ---
 const productData = {
     1: {
         name: "Caixa de Vodka Ignite",
         price: 960.00,
-        weight: 15, // kg
-        length: 20, // cm
-        width: 30,  // cm
-        height: 32, // cm
+        weight: 15,
+        length: 20,
+        width: 30,
+        height: 32,
     },
     2: {
         name: "Caixa de Gin Ignite",
         price: 510.00,
-        weight: 8,   // kg
-        length: 15,  // cm
-        width: 23,   // cm
-        height: 12,  // cm
+        weight: 8,
+        length: 15,
+        width: 23,
+        height: 12,
     },
 };
 
@@ -49,7 +47,6 @@ app.post('/calcular-frete-e-pagamento', async (req, res) => {
     }
 
     try {
-        // --- NOVA LÓGICA DE CÁLCULO DE PACOTE ---
         const totalWeight = cart.reduce((sum, item) => sum + (productData[item.id].weight * item.quantity), 0);
         const totalVolume = cart.reduce((sum, item) => {
             const product = productData[item.id];
@@ -57,37 +54,33 @@ app.post('/calcular-frete-e-pagamento', async (req, res) => {
             return sum + (boxVolume * item.quantity);
         }, 0);
 
-        // Calcula a dimensão de um cubo com o mesmo volume total para respeitar os limites
         const cubicRoot = Math.cbrt(totalVolume);
-        // Garante as dimensões mínimas exigidas pelos Correios
         const side = Math.max(20, Math.ceil(cubicRoot)); 
-
+        
         const subtotal = cart.reduce((sum, item) => sum + (productData[item.id].price * item.quantity), 0);
 
         const argsCorreios = {
-            nCdServico: '04510', // PAC
             sCepOrigem: '38400000', // SEU CEP DE ORIGEM
             sCepDestino: cepDestino,
-            nVlPeso: totalWeight,
-            nCdFormato: 1, // Caixa
-            nVlComprimento: side,
-            nVlAltura: side,
-            nVlLargura: side,
-            nVlDiametro: 0,
-            sCdMaoPropria: 'N',
-            nVlValorDeclarado: subtotal,
-            sCdAvisoRecebimento: 'N',
+            nVlPeso: totalWeight.toString(), // A nova biblioteca exige que seja string
+            nCdFormato: 1,
+            nVlComprimento: side.toString(),
+            nVlAltura: side.toString(),
+            nVlLargura: side.toString(),
+            nCdServico: ['04510'], // PAC. Pode ser um array: ['04014', '04510'] para SEDEX e PAC
+            nVlValorDeclarado: subtotal.toString(),
+            nVlDiametro: '0',
         };
 
         console.log('Argumentos para os Correios:', argsCorreios);
-        const [resultadoFrete] = await correios.calcPreco(argsCorreios);
+        const resultadoFrete = await calcularPrecoPrazo(argsCorreios);
         console.log('Resposta dos Correios:', resultadoFrete);
         
-        if (!resultadoFrete || resultadoFrete.Erro !== '0') {
-            throw new Error(resultadoFrete.MsgErro || 'Não foi possível calcular o frete.');
+        if (!resultadoFrete[0] || resultadoFrete[0].Erro !== '') {
+            throw new Error(resultadoFrete[0].MsgErro || 'Não foi possível calcular o frete.');
         }
 
-        const valorFrete = parseFloat(resultadoFrete.Valor.replace(',', '.'));
+        const valorFrete = parseFloat(resultadoFrete[0].Valor.replace(',', '.'));
         const linkPagamento = await gerarLinkCartpanda(cart, valorFrete);
 
         res.json({
