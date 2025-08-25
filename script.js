@@ -1,11 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- DADOS DO FRONT-END ATUALIZADOS PARA CAIXA FECHADA ---
     const products = [
         {
             id: 1,
             name: "Vodka Ignite (Caixa)",
-            price: 960.00, // Preço da CAIXA
+            price: 960.00,
             images: ["assets/vodka1.jpg", "assets/vodka2.jpeg", "assets/vodka3.jpg", "assets/vodka4.jpg"],
             shortDescription: "Caixa com 12 unidades. Uma vodka ultra premium, destilada para pureza e suavidade.",
             longDescription: "A Vodka Ignite redefine o padrão de luxo. Produzida a partir dos melhores grãos e água puríssima, passa por um processo de múltipla destilação que garante um sabor incrivelmente suave e um acabamento limpo. Perfeita para ser apreciada pura ou em coquetéis sofisticados.",
@@ -14,8 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
         {
             id: 2,
             name: "Gin Ignite (Caixa)",
-            price: 510.00, // Preço da CAIXA
-            images: ["assets/Gin1.jpg", "assets/Gin2.jpg", "assets/Gin3.jpg", "assets/Gin4.jpg"],
+            price: 510.00,
+            images: ["assets/gin1.jpg", "assets/gin2.jpg", "assets/gin3.jpg", "assets/gin4.jpg"],
             shortDescription: "Caixa com 6 unidades. Um gin artesanal com uma infusão botânica única.",
             longDescription: "O Gin Ignite é uma celebração de sabores. Criado com uma seleção cuidadosa de botânicos exóticos e zimbro de alta qualidade, este gin oferece um perfil aromático complexo e refrescante. Ideal para um gin tônica clássico ou para explorar novas criações de coquetelaria.",
             details: ["Tipo: London Dry Gin", "Volume: 750ml por garrafa", "Teor Alcoólico: 43%", "Venda por caixa com 6 unidades"],
@@ -216,7 +215,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return sum + (product.price * item.quantity);
             }, 0);
 
-            // CORREÇÃO: O HTML do frete agora é gerado dentro do cart-body
             cartBody.innerHTML = cart.map(item => {
                 const product = products.find(p => p.id === item.id);
                 return `
@@ -247,7 +245,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div id="shipping-options"></div>
             `;
 
-            // CORREÇÃO: O rodapé agora só tem o total e o botão de finalizar
             cartFooter.style.display = 'block';
             cartFooter.innerHTML = `
                 <div id="final-total" class="final-total" style="display: none;"></div>
@@ -432,6 +429,32 @@ document.addEventListener('DOMContentLoaded', () => {
         checkoutBtn.style.display = 'block';
     };
 
+    const handleCheckout = async () => {
+        const checkoutBtn = document.getElementById('checkout-btn');
+        checkoutBtn.textContent = 'Gerando link...';
+        checkoutBtn.disabled = true;
+
+        try {
+            const response = await fetch(`${backendUrl}/criar-pagamento`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cart, shippingOption: selectedShipping })
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.details || data.error || 'Não foi possível gerar o link.');
+            }
+
+            window.location.href = data.paymentLink;
+
+        } catch (error) {
+            alert(`Erro ao finalizar a compra: ${error.message}`);
+            checkoutBtn.textContent = 'Ir para Pagamento';
+            checkoutBtn.disabled = false;
+        }
+    };
+
     const initializeEventListeners = () => {
         document.body.addEventListener('click', function(event) {
             const navLink = event.target.closest('.nav-link');
@@ -515,19 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (event.target.id === 'checkout-btn') {
-                if (selectedShipping) {
-                    const subtotal = cart.reduce((sum, item) => {
-                        const product = products.find(p => p.id === item.id);
-                        return sum + (product.price * item.quantity);
-                    }, 0);
-                    const total = subtotal + parseFloat(selectedShipping.price);
-                    
-                    const paymentLink = `https://pagamento.exemplo.com/checkout?total=${total.toFixed(2)}`;
-                    console.log("Redirecionando para:", paymentLink);
-                    window.location.href = paymentLink;
-                } else {
-                    alert("Por favor, selecione uma opção de frete.");
-                }
+                handleCheckout();
                 return;
             }
         });
