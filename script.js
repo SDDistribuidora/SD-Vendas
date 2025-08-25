@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
             id: 2,
             name: "Gin Ignite (Caixa)",
             price: 510.00,
-            images: ["assets/gin1.jpg", "assets/gin2.jpg", "assets/gin3.jpg", "assets/gin4.jpg"],
+            images: ["assets/Gin1.jpg", "assets/Gin2.jpg", "assets/Gin3.jpg", "assets/Gin4.jpg"],
             shortDescription: "Caixa com 6 unidades. Um gin artesanal com uma infusão botânica única.",
             longDescription: "O Gin Ignite é uma celebração de sabores. Criado com uma seleção cuidadosa de botânicos exóticos e zimbro de alta qualidade, este gin oferece um perfil aromático complexo e refrescante. Ideal para um gin tônica clássico ou para explorar novas criações de coquetelaria.",
             details: ["Tipo: London Dry Gin", "Volume: 750ml por garrafa", "Teor Alcoólico: 43%", "Venda por caixa com 6 unidades"],
@@ -375,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const options = await response.json();
             if (!response.ok || options.length === 0) {
-                throw new Error(options.error || 'Nenhuma opção de frete encontrada.');
+                throw new Error(options.details || options.error || 'Nenhuma opção de frete encontrada.');
             }
             
             shippingOptionsDiv.innerHTML = `

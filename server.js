@@ -1,9 +1,8 @@
-// server.js - VERSÃO FINAL COM INTEGRAÇÃO ASAAS
+// server.js - VERSÃO FINAL COM A API DO MELHOR ENVIO
 
 const express = require('express');
 const cors = require('cors');
-const axios = require('axios');
-const { calcularPrecoPrazo } = require('correios-brasil');
+const axios = require('axios'); // Usaremos Axios para as requisições
 
 const app = express();
 
@@ -14,10 +13,11 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// --- SUA CHAVE DA API DA ASAAS (LIDA DO AMBIENTE SEGURO DO RENDER) ---
-const ASAAS_API_KEY = process.env.ASAAS_API_KEY;
-const ASAAS_API_URL = 'https://www.asaas.com/api/v3/payments'; // URL de produção da Asaas
+// --- SEU TOKEN DE ACESSO DO MELHOR ENVIO ---
+const MELHOR_ENVIO_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiN2FiYTNiOWQzN2VkN2VlYzg4YjhmZDRkOWY3OTc0MTMyNTA3NDc2NmY0ZWUzZDE4NmRlNmFhOTFlMjZkYmRiNjU1MjFlODhmMmY2MzVmNmEiLCJpYXQiOjE3NTU4ODMxMDYuMzMwMzQ4LCJuYmYiOjE3NTU4ODMxMDYuMzMwMzUsImV4cCI6MTc4NzQxOTEwNi4zMTI2NTEsInN1YiI6IjlmYjI1NWNkLWUzMDUtNDdkMy1iMTk3LWIyNDQ4YTJhM2YwNyIsInNjb3BlcyI6WyJzaGlwcGluZy1jYWxjdWxhdGUiXX0.AI5PrR4XHRc49cu1QTVJ9HOBrGhdfUs-QzIht8sxuGvMmxKNJhkVfOvLdDAoae-pq2R_NsTTEjGRko-FsADhaQSeA8qnTgqK6HUkj1ao1y_zwmocCp5J6y0t9asjGccaquFgiw2jaabkQ8zS-x4mEQZ6bxl6r5852Qgbbp4ukk3TgC3qaX9ivst2Gd51qj7D_DirzE02R5b3ybZ-lC6aU77zdJ_-BmhQ-wT2d_NCgv9zrNOY2Tye8rgt0ZJ0y-nF_XG6hD36Q_4W1SDnQFej9Hj319Sz3Q8U1ZyyFjGup1URLaGGrevKA5_yLBTXdeHsulRz52NTKhjDcmB0GjJpnXnKVptwwRT1VC5pe9CZVt-6RmgYdtTgwoE-ahi_Bgm2jN298aiiwRp3X254ReZwLtaSkytQ5E0XlZzq4B25fzel4glfZnx2Usp0yqdDbmYv-dtWl8tQ3tX0YzaFabfLs9N6uK46H8bEbOCPN1tVAuWVcavOik2eJUisicnuUXVvxrSszNKOTcLFWoc4i2qy7J1okJi4ixd0xs9DB6a4JjjvQiMMiF0IGPqCylwUg6QvLACihycd-mg2dX7srtdur9k9Gt6OdIll1VmQh9u4MTb0RFb-ovrMx04__wMgdiEKfhJksgtnpUyIALnTXTYHOltlhCPwhgTCkbS8oACJiBA';
+const ASAAS_API_KEY = process.env.ASAAS_API_KEY; // Lendo a chave da Asaas do Render
 
+// --- DADOS DOS PRODUTOS POR CAIXA FECHADA ---
 const productData = {
     1: {
         name: "Caixa de Vodka Ignite",
@@ -37,68 +37,111 @@ const productData = {
     },
 };
 
-// --- NOVA FUNÇÃO PARA GERAR LINK DE PAGAMENTO NA ASAAS ---
-async function gerarLinkAsaas(items, frete) {
-    if (!ASAAS_API_KEY) {
-        throw new Error('A chave da API da Asaas não foi configurada no servidor.');
-    }
-
-    const subtotal = items.reduce((sum, item) => sum + (productData[item.id].price * item.quantity), 0);
-    const valorTotal = subtotal + frete;
-    const description = items.map(item => `${item.quantity}x ${productData[item.id].name}`).join(', ');
-
-    console.log("Gerando cobrança na Asaas no valor de:", valorTotal.toFixed(2));
-
-    const requestBody = {
-        billingType: "UNDEFINED", // Permite que o cliente escolha (Boleto, Cartão, Pix)
-        chargeType: "DETACHED",
-        value: valorTotal,
-        dueDate: new Date(new Date().getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Vencimento em 3 dias
-        description: `Pedido S&D Distribuidora: ${description}`,
-        // Para uma implementação real, você coletaria o nome e CPF do cliente no front-end
-        // e passaria para cá. Por enquanto, usamos um placeholder.
-        customer: {
-            name: "Cliente S&D",
-            cpfCnpj: "00000000000" // CPF/CNPJ genérico
-        }
-    };
-
-    const headers = {
-        'Content-Type': 'application/json',
-        'access_token': ASAAS_API_KEY
-    };
-
-    try {
-        const response = await axios.post(ASAAS_API_URL, requestBody, { headers });
-        // A Asaas retorna a URL da fatura no campo 'invoiceUrl'
-        console.log("Link de pagamento Asaas gerado:", response.data.invoiceUrl);
-        return response.data.invoiceUrl; 
-
-    } catch (error) {
-        console.error("Erro ao criar cobrança na Asaas:", error.response ? error.response.data.errors : error.message);
-        throw new Error("Não foi possível criar o link de pagamento.");
-    }
-}
+// Endpoint da API do Melhor Envio para cálculo de frete
+const ME_API_URL = 'https://www.melhorenvio.com.br/api/v2/me/shipment/calculate';
+const ASAAS_API_URL = 'https://www.asaas.com/api/v3/payments';
 
 app.post('/calcular-frete', async (req, res) => {
-    // ... (esta parte do código continua a mesma da versão anterior)
+    console.log('Recebida nova requisição para /calcular-frete');
+    const { cart, cepDestino } = req.body;
+
+    if (!cart || !cepDestino || cart.length === 0) {
+        return res.status(400).json({ error: 'Dados do carrinho ou CEP ausentes.' });
+    }
+
+    try {
+        const subtotal = cart.reduce((sum, item) => sum + (productData[item.id].price * item.quantity), 0);
+        
+        const productsForShipping = cart.map(item => {
+            const product = productData[item.id];
+            const items = [];
+            for (let i = 0; i < item.quantity; i++) {
+                items.push({
+                    id: item.id.toString(),
+                    width: product.width,
+                    height: product.height,
+                    length: product.length,
+                    weight: product.weight,
+                    insurance_value: product.price,
+                    quantity: 1
+                });
+            }
+            return items;
+        }).flat();
+
+        const requestBody = {
+            from: { postal_code: "38400000" }, // SEU CEP DE ORIGEM
+            to: { postal_code: cepDestino },
+            products: productsForShipping,
+            options: {
+                insurance_value: subtotal,
+                receipt: false,
+                own_hand: false
+            }
+        };
+
+        const headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${MELHOR_ENVIO_TOKEN}`,
+            'User-Agent': 'S&D Distribuidora (seddistribuidora@yahoo.com)'
+        };
+
+        console.log('Enviando para Melhor Envio:', JSON.stringify(requestBody, null, 2));
+        const { data: shippingOptions } = await axios.post(ME_API_URL, requestBody, { headers });
+
+        const validOptions = shippingOptions.filter(option => !option.error);
+        console.log('Opções de frete recebidas:', validOptions);
+        res.json(validOptions);
+
+    } catch (error) {
+        console.error("Erro ao calcular frete com Melhor Envio:", error.response ? error.response.data : error.message);
+        res.status(500).json({ error: 'Não foi possível calcular o frete.', details: error.response ? error.response.data : error.message });
+    }
 });
 
-// Endpoint que o front-end vai chamar para finalizar a compra
 app.post('/criar-pagamento', async (req, res) => {
     const { cart, shippingOption } = req.body;
 
     if (!cart || !shippingOption) {
         return res.status(400).json({ error: 'Dados do carrinho ou do frete ausentes.' });
     }
+    
+    if (!ASAAS_API_KEY) {
+        return res.status(500).json({ error: 'A chave da API da Asaas não foi configurada no servidor.' });
+    }
 
     try {
+        const subtotal = cart.reduce((sum, item) => sum + (productData[item.id].price * item.quantity), 0);
         const frete = parseFloat(shippingOption.price);
-        const linkPagamento = await gerarLinkAsaas(cart, frete);
-        res.json({ paymentLink: linkPagamento });
+        const valorTotal = subtotal + frete;
+        const description = cart.map(item => `${item.quantity}x ${productData[item.id].name}`).join(', ');
+
+        const requestBody = {
+            billingType: "UNDEFINED",
+            chargeType: "DETACHED",
+            value: valorTotal,
+            dueDate: new Date(new Date().getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            description: `Pedido S&D Distribuidora: ${description}`,
+            customer: {
+                name: "Cliente S&D",
+                cpfCnpj: "00000000000"
+            }
+        };
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'access_token': ASAAS_API_KEY
+        };
+
+        const response = await axios.post(ASAAS_API_URL, requestBody, { headers });
+        
+        console.log("Link de pagamento Asaas gerado:", response.data.invoiceUrl);
+        res.json({ paymentLink: response.data.invoiceUrl });
+
     } catch (error) {
-        console.error("Erro ao criar pagamento:", error);
-        res.status(500).json({ error: 'Ocorreu um erro no servidor.', details: error.message });
+        console.error("Erro ao criar cobrança na Asaas:", error.response ? error.response.data.errors : error.message);
+        res.status(500).json({ error: 'Não foi possível criar o link de pagamento.', details: error.response ? error.response.data.errors : "Erro interno" });
     }
 });
 
