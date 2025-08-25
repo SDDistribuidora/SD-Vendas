@@ -279,7 +279,7 @@ nav {
 .quantity-display { font-weight: 500; min-width: 20px; text-align: center; }
 .remove-item-btn { background: none; border: none; cursor: pointer; color: #ef4444; font-size: 1.25rem; }
 .cart-footer { padding: 1.5rem; border-top: 1px solid #e5e7eb; }
-.cart-subtotal { display: flex; justify-content: space-between; font-size: 1.125rem; font-weight: 600; margin-bottom: 1.5rem; }
+.cart-subtotal { display: flex; justify-content: space-between; font-size: 1.125rem; font-weight: 600; }
 
 /* --- NOVOS ESTILOS PARA O CHECKOUT --- */
 .customer-details {

@@ -1,8 +1,9 @@
-// server.js - VERSÃO FINAL COM A API DO MELHOR ENVIO
+// server.js - VERSÃO FINAL COM INTEGRAÇÃO ASAAS E DADOS DO CLIENTE
 
 const express = require('express');
 const cors = require('cors');
-const axios = require('axios'); // Usaremos Axios para as requisições
+const axios = require('axios');
+const { calcularPrecoPrazo } = require('correios-brasil');
 
 const app = express();
 
@@ -13,11 +14,13 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// --- SUA CHAVE DA API DA ASAAS (LIDA DO AMBIENTE SEGURO DO RENDER) ---
+const ASAAS_API_KEY = process.env.ASAAS_API_KEY;
+const ASAAS_API_URL = 'https://www.asaas.com/api/v3/payments';
+
 // --- SEU TOKEN DE ACESSO DO MELHOR ENVIO ---
 const MELHOR_ENVIO_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiN2FiYTNiOWQzN2VkN2VlYzg4YjhmZDRkOWY3OTc0MTMyNTA3NDc2NmY0ZWUzZDE4NmRlNmFhOTFlMjZkYmRiNjU1MjFlODhmMmY2MzVmNmEiLCJpYXQiOjE3NTU4ODMxMDYuMzMwMzQ4LCJuYmYiOjE3NTU4ODMxMDYuMzMwMzUsImV4cCI6MTc4NzQxOTEwNi4zMTI2NTEsInN1YiI6IjlmYjI1NWNkLWUzMDUtNDdkMy1iMTk3LWIyNDQ4YTJhM2YwNyIsInNjb3BlcyI6WyJzaGlwcGluZy1jYWxjdWxhdGUiXX0.AI5PrR4XHRc49cu1QTVJ9HOBrGhdfUs-QzIht8sxuGvMmxKNJhkVfOvLdDAoae-pq2R_NsTTEjGRko-FsADhaQSeA8qnTgqK6HUkj1ao1y_zwmocCp5J6y0t9asjGccaquFgiw2jaabkQ8zS-x4mEQZ6bxl6r5852Qgbbp4ukk3TgC3qaX9ivst2Gd51qj7D_DirzE02R5b3ybZ-lC6aU77zdJ_-BmhQ-wT2d_NCgv9zrNOY2Tye8rgt0ZJ0y-nF_XG6hD36Q_4W1SDnQFej9Hj319Sz3Q8U1ZyyFjGup1URLaGGrevKA5_yLBTXdeHsulRz52NTKhjDcmB0GjJpnXnKVptwwRT1VC5pe9CZVt-6RmgYdtTgwoE-ahi_Bgm2jN298aiiwRp3X254ReZwLtaSkytQ5E0XlZzq4B25fzel4glfZnx2Usp0yqdDbmYv-dtWl8tQ3tX0YzaFabfLs9N6uK46H8bEbOCPN1tVAuWVcavOik2eJUisicnuUXVvxrSszNKOTcLFWoc4i2qy7J1okJi4ixd0xs9DB6a4JjjvQiMMiF0IGPqCylwUg6QvLACihycd-mg2dX7srtdur9k9Gt6OdIll1VmQh9u4MTb0RFb-ovrMx04__wMgdiEKfhJksgtnpUyIALnTXTYHOltlhCPwhgTCkbS8oACJiBA';
-const ASAAS_API_KEY = process.env.ASAAS_API_KEY; // Lendo a chave da Asaas do Render
 
-// --- DADOS DOS PRODUTOS POR CAIXA FECHADA ---
 const productData = {
     1: {
         name: "Caixa de Vodka Ignite",
@@ -37,9 +40,7 @@ const productData = {
     },
 };
 
-// Endpoint da API do Melhor Envio para cálculo de frete
 const ME_API_URL = 'https://www.melhorenvio.com.br/api/v2/me/shipment/calculate';
-const ASAAS_API_URL = 'https://www.asaas.com/api/v3/payments';
 
 app.post('/calcular-frete', async (req, res) => {
     console.log('Recebida nova requisição para /calcular-frete');
@@ -101,10 +102,11 @@ app.post('/calcular-frete', async (req, res) => {
 });
 
 app.post('/criar-pagamento', async (req, res) => {
-    const { cart, shippingOption } = req.body;
+    // CORREÇÃO: Agora recebemos os dados do cliente
+    const { cart, shippingOption, customer } = req.body;
 
-    if (!cart || !shippingOption) {
-        return res.status(400).json({ error: 'Dados do carrinho ou do frete ausentes.' });
+    if (!cart || !shippingOption || !customer || !customer.name || !customer.cpfCnpj) {
+        return res.status(400).json({ error: 'Dados do carrinho, frete ou cliente ausentes.' });
     }
     
     if (!ASAAS_API_KEY) {
@@ -123,9 +125,10 @@ app.post('/criar-pagamento', async (req, res) => {
             value: valorTotal,
             dueDate: new Date(new Date().getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             description: `Pedido S&D Distribuidora: ${description}`,
+            // CORREÇÃO: Usando os dados do cliente enviados pelo front-end
             customer: {
-                name: "Cliente S&D",
-                cpfCnpj: "00000000000"
+                name: customer.name,
+                cpfCnpj: customer.cpfCnpj
             }
         };
 

@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
         {
             id: 1,
             name: "Vodka Ignite (Caixa)",
-            price: 960.00,
+            price: 960.00, // Preço da CAIXA
             images: ["assets/vodka1.jpg", "assets/vodka2.jpeg", "assets/vodka3.jpg", "assets/vodka4.jpg"],
             shortDescription: "Caixa com 12 unidades. Uma vodka ultra premium, destilada para pureza e suavidade.",
             longDescription: "A Vodka Ignite redefine o padrão de luxo. Produzida a partir dos melhores grãos e água puríssima, passa por um processo de múltipla destilação que garante um sabor incrivelmente suave e um acabamento limpo. Perfeita para ser apreciada pura ou em coquetéis sofisticados.",
@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
         {
             id: 2,
             name: "Gin Ignite (Caixa)",
-            price: 510.00,
+            price: 510.00, // Preço da CAIXA
             images: ["assets/gin1.jpg", "assets/gin2.jpg", "assets/gin3.jpg", "assets/gin4.jpg"],
             shortDescription: "Caixa com 6 unidades. Um gin artesanal com uma infusão botânica única.",
             longDescription: "O Gin Ignite é uma celebração de sabores. Criado com uma seleção cuidadosa de botânicos exóticos e zimbro de alta qualidade, este gin oferece um perfil aromático complexo e refrescante. Ideal para um gin tônica clássico ou para explorar novas criações de coquetelaria.",
@@ -248,6 +248,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             cartFooter.style.display = 'block';
             cartFooter.innerHTML = `
+                <div class="customer-details" style="display: none;">
+                    <input type="text" id="customer-name" placeholder="Nome Completo">
+                    <input type="text" id="customer-cpf" placeholder="CPF ou CNPJ">
+                </div>
                 <div id="final-total" class="final-total" style="display: none;"></div>
                 <button class="button" id="checkout-btn" style="display: none;">Ir para Pagamento</button>
             `;
@@ -402,10 +406,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateTotal = () => {
         const finalTotalDiv = document.getElementById('final-total');
         const checkoutBtn = document.getElementById('checkout-btn');
+        const customerDetailsDiv = document.querySelector('.customer-details');
 
         if (!selectedShipping) {
             finalTotalDiv.style.display = 'none';
             checkoutBtn.style.display = 'none';
+            customerDetailsDiv.style.display = 'none';
             return;
         }
         
@@ -427,11 +433,25 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
         finalTotalDiv.style.display = 'flex';
+        customerDetailsDiv.style.display = 'flex';
         checkoutBtn.style.display = 'block';
     };
 
     const handleCheckout = async () => {
         const checkoutBtn = document.getElementById('checkout-btn');
+        const customerNameInput = document.getElementById('customer-name');
+        const customerCpfInput = document.getElementById('customer-cpf');
+
+        const customer = {
+            name: customerNameInput.value,
+            cpfCnpj: customerCpfInput.value.replace(/\D/g, '')
+        };
+
+        if (!customer.name || !customer.cpfCnpj) {
+            alert('Por favor, preencha seu nome e CPF/CNPJ.');
+            return;
+        }
+
         checkoutBtn.textContent = 'Gerando link...';
         checkoutBtn.disabled = true;
 
@@ -439,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`${backendUrl}/criar-pagamento`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cart, shippingOption: selectedShipping })
+                body: JSON.stringify({ cart, shippingOption: selectedShipping, customer })
             });
 
             const data = await response.json();
