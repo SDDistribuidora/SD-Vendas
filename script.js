@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <div class="contact-item">
                             <ion-icon name="logo-whatsapp"></ion-icon>
-                            <a href="https://wa.me/553491360693" target="_blank">+55 34 9136-0693</a>
+                            <a href="https://wa.me/553498714483" target="_blank">+55 34 9136-0693</a>
                         </div>
                         <div class="contact-item">
                             <ion-icon name="logo-instagram"></ion-icon>
